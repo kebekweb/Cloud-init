@@ -1,0 +1,167 @@
+#cloud-config
+
+#https://github.com/coreos/coreos-cloudinit/blob/master/Documentation/cloud-config-examples.md
+
+write_files:
+  - path: /etc/ntp.conf
+    content: |
+      server 0.ca.pool.ntp.org
+      server 1.ca.pool.ntp.org
+      server 2.ca.pool.ntp.org
+      server 3.ca.pool.ntp.org
+
+      # - Allow only time queries, at a limited rate.
+      # - Allow all local queries (IPv4, IPv6)
+      restrict default nomodify nopeer noquery limited kod
+      restrict 127.0.0.1
+      restrict [::1]
+
+  - path: /etc/ssh/sshd_config
+    permissions: 0600
+    owner: root:root
+    content: |
+      # Use most defaults for sshd configuration.
+      UsePrivilegeSeparation sandbox
+      Subsystem sftp internal-sftp
+
+      PermitRootLogin no
+      AllowUsers core
+      PasswordAuthentication no
+      ChallengeResponseAuthentication no
+
+  # - path: "/var/run/sshd.pid"
+  #   permissions: "0644"
+  #   owner: "root"
+
+  ## Prevent creation of bond0 interface
+  - path: /etc/modprobe.d/bonding.conf
+    content: |
+      # Prevent kernel from automatically creating bond0 when the module is loaded.
+      # This allows systemd-networkd to create and apply options to bond0.
+      options bonding max_bonds=0
+  - path: /etc/systemd/network/10-eth.network
+    permissions: 0644
+    owner: root
+    content: |
+      [Match]
+      Name=eth*
+
+      [Network]
+      Bond=bond0
+  - path: /etc/systemd/network/20-bond.netdev
+    permissions: 0644
+    owner: root
+    content: |
+      [NetDev]
+      Name=bond0
+      Kind=bond
+
+      [Bond]
+      Mode=0 # defaults to balance-rr
+      MIIMonitorSec=1
+  - path: /etc/systemd/network/30-bond-dhcp.network
+    permissions: 0644
+    owner: root
+    content: |
+      [Match]
+      Name=bond0
+
+      [Network]
+      DHCP=ipv4
+
+coreos:
+  units:
+    - name: settimezone.service
+      command: start
+      content: |
+        [Unit]
+        Description=Set the time zone
+
+        [Service]
+        ExecStart=/usr/bin/timedatectl set-timezone Canada/Eastern
+        RemainAfterExit=yes
+        Type=oneshot
+
+    - name: systemd-timesyncd.service
+      command: stop
+      mask: true
+
+    - name: ntpd.service
+      command: start
+      enable: true
+
+    - name: sshd.socket
+      command: restart
+      runtime: true
+      content: |
+        [Socket]
+        ListenStream=5544
+        FreeBind=true
+        Accept=yes
+
+    - name: systemd-networkd.service
+      command: stop
+
+    - name: 00-eth0.network
+      runtime: true
+      content: |
+        [Match]
+        Name=eth0
+
+        [Network]
+        DNS=192.168.2.1
+        Address=192.168.2.130/24
+        Gateway=192.168.2.1
+
+    - name: down-interfaces.service
+      command: start
+      content: |
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/ip link set eth0 down
+        ExecStart=/usr/bin/ip addr flush dev eth0
+
+    - name: systemd-networkd.service
+      command: restart
+    # - name: sshd.socket
+    #   command: stop
+    #   mask: true
+
+    # - name: sshd.service
+    #   command: start
+    #   content: |
+    #     [Unit]
+    #     Description=OpenSSH server daemon
+
+    #     [Service]
+    #     Type=forking
+    #     PIDFile=/var/run/sshd.pid
+    #     ExecStart=/usr/sbin/sshd
+    #     ExecReload=/bin/kill -HUP $MAINPID
+    #     KillMode=process
+    #     Restart=on-failure
+    #     RestartSec=30s
+
+    #     [Install]
+    #     WantedBy=multi-user.target
+
+    - name: down-interfaces.service
+      command: start
+      content: |
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/ip link set eth0 down
+        ExecStart=/usr/bin/ip addr flush dev eth0
+        ExecStart=/usr/bin/ip link set eth1 down
+        ExecStart=/usr/bin/ip addr flush dev eth1
+    - name: systemd-networkd.service
+      command: restart
+
+hostname: "coreos"
+users:
+  - name: "core"
+    groups:
+    - "sudo"
+    - "docker"
+    ssh_authorized_keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC9MRb5V5L9wqZZTo0Xs+uunZemZJpc6vO93+t9/7u28k/9Gg+H4qMUDvfWSgkn5VCr5CK9P+mOWLCXNVzpt1C7GUJTMtILm6mL9UMxeD7DvJPDyr54J+hPS2Csi0O8cHdcDAXQvXkiwkAypNQL2173BCF1s2azndY1lIqwarCoJ5elQDRhdbICD3K4laYwYoHhwyN4HOZDHJrb2RzrQ5/VPUvnKZMHVWHh2UWpvly8/gpZ245yWR8fuB+0yWuWChrUGT6lxdUpRUHXOlHYvM3jJ2DDOQfUSdr8IHpIAWcxWm1ldZrDLj8f4QnfCjFMnaS1yLxOH75zmOdo+9LstHgz patrick@wks-000369"

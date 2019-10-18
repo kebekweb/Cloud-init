@@ -1,0 +1,75 @@
+{
+  "ignition": {
+    "config": {},
+    "security": {
+      "tls": {}
+    },
+    "timeouts": {},
+    "version": "2.2.0"
+  },
+  "networkd": {
+    "units": [
+      {
+        "contents": "[Match]\nName=et0\n\n[Network]\nAddress=192.168.2.130/24\nGateway=192.168.2.1\nDNS=192.168.2.1\n",
+        "name": "static.network"
+      }
+    ]
+  },
+  "passwd": {
+    "users": [
+      {
+        "groups": [
+          "sudo",
+          "docker"
+        ],
+        "name": "core",
+        "sshAuthorizedKeys": [
+          "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC9MRb5V5L9wqZZTo0Xs+uunZemZJpc6vO93+t9/7u28k/9Gg+H4qMUDvfWSgkn5VCr5CK9P+mOWLCXNVzpt1C7GUJTMtILm6mL9UMxeD7DvJPDyr54J+hPS2Csi0O8cHdcDAXQvXkiwkAypNQL2173BCF1s2azndY1lIqwarCoJ5elQDRhdbICD3K4laYwYoHhwyN4HOZDHJrb2RzrQ5/VPUvnKZMHVWHh2UWpvly8/gpZ245yWR8fuB+0yWuWChrUGT6lxdUpRUHXOlHYvM3jJ2DDOQfUSdr8IHpIAWcxWm1ldZrDLj8f4QnfCjFMnaS1yLxOH75zmOdo+9LstHgz patrick@wks-000369"
+        ]
+      }
+    ]
+  },
+  "storage": {
+    "files": [
+      {
+        "filesystem": "root",
+        "path": "/etc/ssh/sshd_config",
+        "contents": {
+          "source": "data:,%23%20Supported%20HostKey%20algorithms%20by%20order%20of%20preference.%0AHostKey%20%2Fetc%2Fssh%2Fssh_host_ed25519_key%0AHostKey%20%2Fetc%2Fssh%2Fssh_host_rsa_key%0AHostKey%20%2Fetc%2Fssh%2Fssh_host_ecdsa_key%0A%0AKexAlgorithms%20curve25519-sha256%40libssh.org%2Cecdh-sha2-nistp521%2Cecdh-sha2-nistp384%2Cecdh-sha2-nistp256%2Cdiffie-hellman-group-exchange-sha256%0A%0ACiphers%20chacha20-poly1305%40openssh.com%2Caes256-gcm%40openssh.com%2Caes128-gcm%40openssh.com%2Caes256-ctr%2Caes192-ctr%2Caes128-ctr%0A%0AMACs%20hmac-sha2-512-etm%40openssh.com%2Chmac-sha2-256-etm%40openssh.com%2Cumac-128-etm%40openssh.com%2Chmac-sha2-512%2Chmac-sha2-256%2Cumac-128%40openssh.com%0A%0A%23%20Password%20based%20logins%20are%20disabled%20-%20only%20public%20key%20based%20logins%20are%20allowed.%0AAuthenticationMethods%20publickey%0A%0A%23%20LogLevel%20VERBOSE%20logs%20user's%20key%20fingerprint%20on%20login.%20Needed%20to%20have%20a%20clear%20audit%20track%20of%20which%20key%20was%20using%20to%20log%20in.%0ALogLevel%20VERBOSE%0A%0A%23%20Log%20sftp%20level%20file%20access%20(read%2Fwrite%2Fetc.)%20that%20would%20not%20be%20easily%20logged%20otherwise.%0ASubsystem%20sftp%20%20%2Fusr%2Flib%2Fssh%2Fsftp-server%20-f%20AUTHPRIV%20-l%20INFO%0A%0A%23%20Root%20login%20is%20not%20allowed%20for%20auditing%20reasons.%20This%20is%20because%20it's%20difficult%20to%20track%20which%20process%20belongs%20to%20which%20root%20user%3A%0A%23%0A%23%20On%20Linux%2C%20user%20sessions%20are%20tracking%20using%20a%20kernel-side%20session%20id%2C%20however%2C%20this%20session%20id%20is%20not%20recorded%20by%20OpenSSH.%0A%23%20Additionally%2C%20only%20tools%20such%20as%20systemd%20and%20auditd%20record%20the%20process%20session%20id.%0A%23%20On%20other%20OSes%2C%20the%20user%20session%20id%20is%20not%20necessarily%20recorded%20at%20all%20kernel-side.%0A%23%20Using%20regular%20users%20in%20combination%20with%20%2Fbin%2Fsu%20or%20%2Fusr%2Fbin%2Fsudo%20ensure%20a%20clear%20audit%20track.%0APermitRootLogin%20No%0A%0A%23%20Use%20kernel%20sandbox%20mechanisms%20where%20possible%20in%20unprivileged%20processes%0A%23%20Systrace%20on%20OpenBSD%2C%20Seccomp%20on%20Linux%2C%20seatbelt%20on%20MacOSX%2FDarwin%2C%20rlimit%20elsewhere.%0AUsePrivilegeSeparation%20sandbox%0A%0AAllowUsers%20core%0A",
+          "verification": {}
+        },
+        "mode": 384
+      },
+      {
+        "filesystem": "root",
+        "path": "/var/lib/iptables/rules-save",
+        "contents": {
+          "source": "data:,*filter%0A%3AINPUT%20DROP%20%5B0%3A0%5D%0A%3AFORWARD%20DROP%20%5B0%3A0%5D%0A%3AOUTPUT%20ACCEPT%20%5B0%3A0%5D%0A-A%20INPUT%20-i%20lo%20-j%20ACCEPT%0A-A%20INPUT%20-m%20conntrack%20--ctstate%20RELATED%2CESTABLISHED%20-j%20ACCEPT%0A-A%20INPUT%20-p%20tcp%20-m%20tcp%20--dport%2022%20-j%20ACCEPT%0A-A%20INPUT%20-p%20tcp%20-m%20tcp%20--dport%2080%20-j%20ACCEPT%0A-A%20INPUT%20-p%20tcp%20-m%20tcp%20--dport%20443%20-j%20ACCEPT%0A-A%20INPUT%20-p%20icmp%20-m%20icmp%20--icmp-type%200%20-j%20ACCEPT%0A-A%20INPUT%20-p%20icmp%20-m%20icmp%20--icmp-type%203%20-j%20ACCEPT%0A-A%20INPUT%20-p%20icmp%20-m%20icmp%20--icmp-type%2011%20-j%20ACCEPT%0ACOMMIT%0A%23%0A",
+          "verification": {}
+        },
+        "mode": 420
+      },
+      {
+        "filesystem": "root",
+        "path": "/etc/coreos/update.conf",
+        "contents": {
+          "source": "data:,%0AREBOOT_STRATEGY%3D%22reboot%22%0ALOCKSMITHD_REBOOT_WINDOW_START%3D%2204%3A00%22%0ALOCKSMITHD_REBOOT_WINDOW_LENGTH%3D%221h%22",
+          "verification": {}
+        },
+        "mode": 420
+      }
+    ]
+  },
+  "systemd": {
+    "units": [
+      {
+        "enable": true,
+        "name": "iptables-restore.service"
+      },
+      {
+        "enable": true,
+        "name": "docker.service"
+      }
+    ]
+  }
+}

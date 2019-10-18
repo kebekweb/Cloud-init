@@ -3,7 +3,9 @@ passwd:
     - name: core
       ssh_authorized_keys:
         - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC9MRb5V5L9wqZZTo0Xs+uunZemZJpc6vO93+t9/7u28k/9Gg+H4qMUDvfWSgkn5VCr5CK9P+mOWLCXNVzpt1C7GUJTMtILm6mL9UMxeD7DvJPDyr54J+hPS2Csi0O8cHdcDAXQvXkiwkAypNQL2173BCF1s2azndY1lIqwarCoJ5elQDRhdbICD3K4laYwYoHhwyN4HOZDHJrb2RzrQ5/VPUvnKZMHVWHh2UWpvly8/gpZ245yWR8fuB+0yWuWChrUGT6lxdUpRUHXOlHYvM3jJ2DDOQfUSdr8IHpIAWcxWm1ldZrDLj8f4QnfCjFMnaS1yLxOH75zmOdo+9LstHgz patrick@wks-000369
-
+      groups:
+        - sudo
+        - docker
 systemd:
   units:
     - name: iptables-restore.service
@@ -11,6 +13,17 @@ systemd:
     - name: docker.service
       enable: true
 
+networkd:
+  units:
+    - name: static.network
+      contents: |
+        [Match]
+        Name=et0
+
+        [Network]
+        Address=192.168.2.130/24
+        Gateway=192.168.2.1
+        DNS=192.168.2.1
 locksmith:
   reboot_strategy: reboot
   window_start: 04:00
@@ -67,7 +80,7 @@ storage:
           :OUTPUT ACCEPT [0:0]
           -A INPUT -i lo -j ACCEPT
           -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-          -A INPUT -p tcp -m tcp --dport 5522 -j ACCEPT
+          -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
           -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
           -A INPUT -p tcp -m tcp --dport 443 -j ACCEPT
           -A INPUT -p icmp -m icmp --icmp-type 0 -j ACCEPT
