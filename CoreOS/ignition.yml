@@ -1,0 +1,77 @@
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC9MRb5V5L9wqZZTo0Xs+uunZemZJpc6vO93+t9/7u28k/9Gg+H4qMUDvfWSgkn5VCr5CK9P+mOWLCXNVzpt1C7GUJTMtILm6mL9UMxeD7DvJPDyr54J+hPS2Csi0O8cHdcDAXQvXkiwkAypNQL2173BCF1s2azndY1lIqwarCoJ5elQDRhdbICD3K4laYwYoHhwyN4HOZDHJrb2RzrQ5/VPUvnKZMHVWHh2UWpvly8/gpZ245yWR8fuB+0yWuWChrUGT6lxdUpRUHXOlHYvM3jJ2DDOQfUSdr8IHpIAWcxWm1ldZrDLj8f4QnfCjFMnaS1yLxOH75zmOdo+9LstHgz patrick@wks-000369
+
+systemd:
+  units:
+    - name: iptables-restore.service
+      enable: true
+    - name: docker.service
+      enable: true
+
+locksmith:
+  reboot_strategy: reboot
+  window_start: 04:00
+  window_length: 1h
+
+storage:
+  files:
+    - path: /etc/ssh/sshd_config
+      filesystem: root
+      mode: 0600
+      contents:
+        inline: |
+          # Supported HostKey algorithms by order of preference.
+          HostKey /etc/ssh/ssh_host_ed25519_key
+          HostKey /etc/ssh/ssh_host_rsa_key
+          HostKey /etc/ssh/ssh_host_ecdsa_key
+
+          KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+
+          Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+
+          MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
+
+          # Password based logins are disabled - only public key based logins are allowed.
+          AuthenticationMethods publickey
+
+          # LogLevel VERBOSE logs user's key fingerprint on login. Needed to have a clear audit track of which key was using to log in.
+          LogLevel VERBOSE
+
+          # Log sftp level file access (read/write/etc.) that would not be easily logged otherwise.
+          Subsystem sftp  /usr/lib/ssh/sftp-server -f AUTHPRIV -l INFO
+
+          # Root login is not allowed for auditing reasons. This is because it's difficult to track which process belongs to which root user:
+          #
+          # On Linux, user sessions are tracking using a kernel-side session id, however, this session id is not recorded by OpenSSH.
+          # Additionally, only tools such as systemd and auditd record the process session id.
+          # On other OSes, the user session id is not necessarily recorded at all kernel-side.
+          # Using regular users in combination with /bin/su or /usr/bin/sudo ensure a clear audit track.
+          PermitRootLogin No
+
+          # Use kernel sandbox mechanisms where possible in unprivileged processes
+          # Systrace on OpenBSD, Seccomp on Linux, seatbelt on MacOSX/Darwin, rlimit elsewhere.
+          UsePrivilegeSeparation sandbox
+
+          AllowUsers core
+    - path: /var/lib/iptables/rules-save
+      filesystem: root
+      mode: 0644
+      contents:
+        inline: |
+          *filter
+          :INPUT DROP [0:0]
+          :FORWARD DROP [0:0]
+          :OUTPUT ACCEPT [0:0]
+          -A INPUT -i lo -j ACCEPT
+          -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          -A INPUT -p tcp -m tcp --dport 5522 -j ACCEPT
+          -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+          -A INPUT -p tcp -m tcp --dport 443 -j ACCEPT
+          -A INPUT -p icmp -m icmp --icmp-type 0 -j ACCEPT
+          -A INPUT -p icmp -m icmp --icmp-type 3 -j ACCEPT
+          -A INPUT -p icmp -m icmp --icmp-type 11 -j ACCEPT
+          COMMIT
+          #
